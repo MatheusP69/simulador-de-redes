@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f8fa">
+<title>Simulador de Rede</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color-scheme:light;--ink:#17212e;--muted:#687587;--border:#e1e6ed;--surface:#fff;--bg:#f7f8fa;--accent:#263c5a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+.wrap{max-width:860px;margin:auto;padding:22px 16px 60px}
+.header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:15px}
+h1{font-size:19px;font-weight:700;letter-spacing:-.04em;margin:0}
+.sub{color:var(--muted);font-size:12px;margin:0}
+.topology-detail{margin:0 0 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+.topology-detail>summary{padding:9px 12px;cursor:pointer;color:var(--muted);font-weight:600;font-size:12px}
+.topology{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 12px 12px}
+.interrouter{text-align:center;margin:4px 12px 10px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--border);padding-bottom:12px}
+.interrouter b{color:var(--ink)}
+.linkgroup{border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:space-around;flex-wrap:wrap;gap:6px;padding:12px 5px}
+.device{font-size:12px;font-weight:600;text-align:center;white-space:nowrap}
+.device small{display:block;font-size:10px;font-weight:400;color:var(--muted)}
+.cable{height:1px;background:#aeb8c4;flex:1;min-width:6px}
+.tabs{display:flex;overflow-x:auto;gap:5px;padding:0 0 10px;scrollbar-width:thin;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.tabs button{background:transparent;border:1px solid transparent;border-radius:7px;white-space:nowrap;padding:8px 11px;font-size:13px;color:var(--muted);scroll-snap-align:center}
+.tabs button.active{color:var(--ink);background:#e9edf3;border-color:#dfe5ec;font-weight:650}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px}
+.top strong{font-size:16px;font-weight:650;letter-spacing:-.02em}
+.pill{font-size:11px;color:var(--muted);text-align:right}
+.terminal{background:#111923;color:#d0e9df;border:1px solid #253141;border-radius:9px;padding:15px;min-height:250px;height:min(48vh,480px);overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;margin-top:10px}
+.entry{display:flex;align-items:center;gap:6px;margin-top:10px}
+.entry label{font:12px ui-monospace,monospace;white-space:nowrap;color:#516276}
+.entry input{flex:1;min-width:0;border:1px solid #cbd4df;background:#fff;border-radius:7px;padding:11px;color:var(--ink);font:16px ui-monospace,monospace;outline-offset:1px}
+.entry button,.server-button,.host-save{border:1px solid var(--border);background:#f3f5f8;border-radius:7px;padding:10px 12px;font-size:13px;font-weight:600;color:var(--ink)}
+.entry button[type="submit"],.server-button.primary,.host-save{background:var(--accent);color:#fff;border-color:var(--accent)}
+.actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:12px}
+.actions button{border:0;background:transparent;color:var(--muted);font-size:11px;padding:6px;border-radius:5px}
+.actions button:hover,.tabs button:hover{background:#eef1f6}
+.hint,.server-note{color:var(--muted);font-size:12px;line-height:1.5;margin:12px 0 0}
+.server-nav{display:flex;gap:5px;overflow-x:auto;margin:12px 0;scrollbar-width:thin}
+.server-nav button{border:1px solid var(--border);background:transparent;padding:8px 12px;white-space:nowrap;border-radius:7px;color:var(--muted);font-size:12px}
+.server-nav button.active{background:#e9edf3;color:var(--ink);font-weight:650}
+.server-fields,.host-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+.server-fields label,.host-grid label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.server-fields input,.host-grid input,.server-fields select{width:100%;min-width:0;border:1px solid #cbd4df;border-radius:7px;background:#fff;color:var(--ink);padding:10px;font-size:16px}
+.server-status{white-space:pre-wrap;background:#f0f4f8;border-left:2px solid #8393a8;color:#334155;padding:8px 10px;border-radius:5px;font-size:12px;margin:10px 0}
+.server-record{display:flex;justify-content:space-between;align-items:center;gap:10px;overflow-wrap:anywhere;border-bottom:1px solid var(--border);padding:8px 0}
+.server-record button{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:4px 8px}
+h3{font-size:15px;margin:15px 0 8px}h4{font-size:13px;margin:15px 0 8px}
+#srv-http-editor{width:100%;min-height:220px;background:#fff!important;color:var(--ink)!important;border:1px solid #cbd4df!important;border-radius:7px;padding:12px;font:13px/1.5 ui-monospace,monospace}
+#srv-http-preview-area iframe{border:1px solid var(--border)!important}
+.server-button{margin:5px 5px 5px 0}
+@media(max-width:600px){.wrap{padding:14px 10px 44px}.panel{padding:12px}.topology{grid-template-columns:1fr}.terminal{height:43vh;min-height:260px}.top{align-items:flex-start}.pill{max-width:155px}.entry{gap:5px}.entry input{padding:10px 8px}.entry button{padding:10px 9px}.server-fields,.host-grid{grid-template-columns:1fr}.tabs button{padding:9px 10px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header class="header"><div><h1>Simulador de rede</h1><p class="sub">Cisco IOS · Server-PT · laboratório interativo</p></div><span class="sub">8 dispositivos</span></header>
+<details class="topology-detail"><summary>Ver conexões da rede</summary>
+<div class="interrouter"><b>R_NOC</b> Fa0/1 ⟷ Fa0/1 <b>R_FL1</b></div>
+<div class="topology">
+ <div class="linkgroup"><div class="device">R_NOC<small>Fa0/0</small></div><div class="cable"></div><div class="device">SW_NOC<small>Fa0/1</small></div><div class="cable"></div><div class="device">PC1<small>Fa0/2</small></div><div class="cable"></div><div class="device">S_NOC<small>Fa0/3</small></div></div>
+ <div class="linkgroup"><div class="device">R_FL1<small>Fa0/0</small></div><div class="cable"></div><div class="device">SW_FL1<small>Fa0/1</small></div><div class="cable"></div><div class="device">PC2<small>Fa0/2</small></div><div class="cable"></div><div class="device">S_FL1<small>Fa0/3</small></div></div>
+</div></details>
+<nav class="tabs" aria-label="Escolher equipamento">
+<button id="tab0" class="active" onclick="selectRouter(0)">R_NOC</button>
+<button id="tab1" onclick="selectRouter(1)">R_FL1</button>
+<button id="tab2" onclick="selectRouter(2)">SW_NOC</button>
+<button id="tab3" onclick="selectRouter(3)">SW_FL1</button>
+<button id="tab4" onclick="selectHost(0)">PC1</button>
+<button id="tab5" onclick="selectHost(1)">S_NOC</button>
+<button id="tab6" onclick="selectHost(2)">PC2</button>
+<button id="tab7" onclick="selectHost(3)">S_FL1</button>
+</nav>
+<section class="panel">
+<div class="top"><strong id="routerTitle">R_NOC</strong><span class="pill" id="model">Cisco 1841</span></div>
+<div id="hostSettings" hidden></div>
+<div class="terminal" id="terminal" role="log" aria-live="polite" aria-label="Histórico de comandos"></div>
+<form id="form" class="entry"><label id="prompt" for="command">Router&gt;</label><input id="command" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" aria-label="Comando Cisco IOS" placeholder="Digite um comando"><button type="button" id="tabComplete" aria-label="Completar comando">Tab ↹</button><button type="submit">Enviar</button></form>
+<div class="actions"><button type="button" onclick="runShortcut('show running-config')">Configuração</button><button type="button" onclick="runShortcut('show ip interface brief')">Interfaces</button><button type="button" id="routeButton" onclick="runShortcut('show ip route')">Rotas</button><button type="button" id="vlanButton" onclick="runShortcut('show vlan brief')">VLANs</button><button type="button" onclick="clearScreen()">Limpar tela</button><button type="button" onclick="resetRouter()">Reiniciar</button></div>
+<p class="hint" id="hint">Digite help para ver os comandos. Use Tab para autocompletar.</p>
+</section>
+</main>
+<script>
+(function(){
+'use strict';
+var $=function(id){return document.getElementById(id)};
+var names=['R_NOC','R_FL1','SW_NOC','SW_FL1','PC1','S_NOC','PC2','S_FL1'];
+var devices=names.map(function(name,i){return {name:name,host:name,mode:'user',context:'',log:'Bem-vindo ao terminal de '+name+'\nDigite help para ver os comandos disponíveis.\n\n',interfaces:{'FastEthernet0/0':{ip:'',mask:'',up:false},'FastEthernet0/1':{ip:'',mask:'',up:false},'Vlan1':{ip:'',mask:'',up:false}},lines:{vty:{},console:{}},routes:[],vlans:{'1':'default'},secret:'',defaultGateway:'',cdp:true,snmp:{},saved:false,ip:'',mask:'',gateway:'',dns:''};});
+var active=0, KEY='simulador-rede-ios-v16';
+try {var data=JSON.parse(localStorage.getItem(KEY));if(Array.isArray(data)&&data.length===8&&data.every(function(x){return x&&x.interfaces&&x.lines&&x.log!==undefined;}))devices=data;devices[5].host='S_NOC';devices[5].name='S_NOC';devices[7].host='S_FL1';devices[7].name='S_FL1';}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(devices));}catch(e){}}
+function current(){return devices[active]}
+function isHost(){return active>=4}
+function isSwitch(){return active===2||active===3}
+function prompt(){var d=current();return isHost()?d.host+'>':d.host+(d.mode==='user'?'>':d.mode==='priv'?'#':d.mode==='config'?'(config)#':d.mode==='iface'?'(config-if)#':d.mode==='line'?'(config-line)#':'(config-vlan)#')}
+function out(msg){current().log+=msg+'\n';if(current().log.length>50000)current().log=current().log.slice(-35000)}
+function validIP(ip){var p=ip.split('.');return p.length===4&&p.every(function(n){return /^\d{1,3}$/.test(n)&&Number(n)<=255})}
+// DHCP local: cada servidor atende somente o PC ligado ao mesmo switch.
+function ipNumber(ip){return ip.split('.').reduce(function(a,b){return (a*256+Number(b))>>>0},0)}
+function numberIP(n){return [24,16,8,0].map(function(k){return (n>>>k)&255}).join('.')}
+function validMask(m){if(!validIP(m))return false;var v=ipNumber(m),inv=(~v)>>>0;return v!==0 && ((inv & (inv+1))===0)}
+function sameSubnet(a,b,m){return ((ipNumber(a)&ipNumber(m))>>>0)===((ipNumber(b)&ipNumber(m))>>>0)}
+function requestDHCP(pcIndex){
+ var pc=devices[pcIndex],srv=devices[pcIndex===4?5:7],svc=serverState(srv).dhcp;
+ if(!svc.enabled)return '✗ DHCP falhou: serviço desligado no servidor '+srv.host+'.';if(pcIndex===6&&svc.dns!=='1.0.0.1')return '✗ DHCP falhou: configure DNS Server 1.0.0.1 no pool do S_FL1.';
+ if(!validIP(srv.ip)||!validMask(srv.mask)||!validIP(svc.start)||!validMask(svc.mask)||!validIP(svc.gateway)||!validIP(svc.dns))return '✗ DHCP falhou: configuração de rede ou pool inválida.';
+ if(!sameSubnet(srv.ip,svc.start,svc.mask))return '✗ DHCP falhou: IP inicial fora da sub-rede do servidor.';
+ var first=ipNumber(svc.start),max=Number(svc.max),network=(first&ipNumber(svc.mask))>>>0,broadcast=(network|((~ipNumber(svc.mask))>>>0))>>>0;
+ if(!Number.isInteger(max)||max<1||first+max-1>=broadcast)return '✗ DHCP falhou: pool excede o intervalo de hosts válidos.';
+ var reserved=[srv.ip,svc.gateway,devices[pcIndex===4?0:1].interfaces['FastEthernet0/0'].ip,devices[pcIndex===4?2:3].interfaces.Vlan1.ip].filter(validIP);
+ var taken=[];[4,6].forEach(function(i){if(i!==pcIndex&&devices[i].ipMode==='dhcp'&&validIP(devices[i].ip))taken.push(devices[i].ip)});
+ var chosen=null;
+ for(var n=0;n<max;n++){var candidate=numberIP(first+n);if(ipNumber(candidate)>network&&ipNumber(candidate)<broadcast&&reserved.indexOf(candidate)<0&&taken.indexOf(candidate)<0){chosen=candidate;break}}
+ if(!chosen)return '✗ DHCP falhou: não há endereços disponíveis.';
+ pc.ip=chosen;pc.mask=svc.mask;pc.gateway=svc.gateway;pc.dns=svc.dns;pc.ipMode='dhcp';save();return '✓ DHCP: endereço '+chosen+' atribuído por '+srv.host+'.\nMáscara: '+pc.mask+'\nGateway: '+pc.gateway+'\nDNS: '+pc.dns;
+}
+function normalize(s){s=s.replace(/\s+/g,'').toLowerCase();if(s.indexOf('fastethernet')===0)s=s.slice(12);else if(s.indexOf('fa')===0)s=s.slice(2);return 'FastEthernet'+s}
+
+// Assistente de sintaxe: sugestões dependem do modo e do tipo de equipamento.
+function editDistance(a,b){
+ a=a.toLowerCase(); b=b.toLowerCase();
+ var prev=[],cur=[],i,j;
+ for(j=0;j<=b.length;j++)prev[j]=j;
+ for(i=1;i<=a.length;i++){
+   cur=[i];for(j=1;j<=b.length;j++)cur[j]=Math.min(cur[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+   prev=cur;
+ }
+ return prev[b.length];
+}
+function exampleFor(root){
+ var examples={
+ 'enable':'enable', 'configure terminal':'configure terminal',
+ 'hostname':'hostname '+names[active], 'enable secret':'enable secret cisco',
+ 'line vty':'line vty 0 1', 'line console':'line console 0',
+ 'password':'password cisco', 'login':'login', 'exit':'exit', 'end':'end',
+ 'interface fastethernet':'interface fastethernet 0/0',
+ 'interface vlan':'interface vlan 1',
+ 'ip address':'ip address '+(active===0?'1.0.0.254':active===1?'3.0.0.254':active===2?'1.0.0.100':'3.0.0.100')+' 255.0.0.0',
+ 'ip default-gateway':'ip default-gateway '+(active===2?'1.0.0.254':'3.0.0.254'),
+ 'no shutdown':'no shutdown','shutdown':'shutdown',
+ 'no cdp run':'no cdp run', 'snmp-server community':'snmp-server community read ro',
+ 'encapsulation ppp':'encapsulation ppp','clock rate':'clock rate 256000',
+ 'do wr':'do wr','wr':'wr',
+ 'show running-config':'show running-config',
+ 'show ip interface brief':'show ip interface brief',
+ 'show vlan brief':'show vlan brief',
+ 'ipconfig':'ipconfig', 'ipconfig /all':'ipconfig /all',
+ 'ipconfig /renew':'ipconfig /renew', 'ping':'ping 1.0.0.254',
+ 'vlan':'vlan 10', 'name':'name TI'
+ };
+ return examples[root]||root;
+}
+function allowedCommands(d){
+ if(isHost())return ['ipconfig','ipconfig /all','ipconfig /renew','ping','help'];
+ var common=['enable','exit','end','help'];
+ var config=['hostname','enable secret','line vty','line console','interface fastethernet'];
+ if(isSwitch())config=config.concat(['interface vlan','ip default-gateway','no cdp run','snmp-server community','vlan']);
+ if(d.mode==='user')return ['enable','help','show running-config'];
+ if(d.mode==='priv')return ['configure terminal','show running-config','show ip interface brief','show vlan brief','wr','write memory','copy running-config startup-config','exit','enable','help'];
+ if(d.mode==='config')return config.concat(['do wr','exit','end','help']);
+ if(d.mode==='line')return ['password','login','exit','end','do wr','help'];
+ if(d.mode==='iface')return ['ip address','no shutdown','shutdown','encapsulation ppp','clock rate','exit','end','do wr','help'];
+ if(d.mode==='vlan')return ['name','exit','end','do wr','help'];
+ return common;
+}
+function targetMode(root){
+ if(['enable'].indexOf(root)>=0)return 'modo usuário (Router> ou Switch>)';
+ if(['configure terminal','show running-config','show ip interface brief','show vlan brief','wr','write memory','copy running-config startup-config'].indexOf(root)>=0)return 'modo privilegiado (#): use enable';
+ if(['hostname','enable secret','line vty','line console','interface fastethernet','interface vlan','ip default-gateway','no cdp run','snmp-server community','vlan'].indexOf(root)>=0)return 'modo de configuração global (config)#: use enable e configure terminal';
+ if(['ip address','no shutdown','shutdown','encapsulation ppp','clock rate'].indexOf(root)>=0)return 'modo de interface (config-if)#';
+ if(['password','login'].indexOf(root)>=0)return 'modo de linha (config-line)#';
+ if(root==='name')return 'modo de configuração VLAN (config-vlan)#';
+ return '';
+}
+function diagnose(command,d){
+ var s=command.toLowerCase().trim().replace(/\s+/g,' '),parts=s.split(' '),list=allowedCommands(d);
+ var all=['enable','configure terminal','hostname','enable secret','line vty','line console','password','login','exit','end','interface fastethernet','interface vlan','ip address','ip default-gateway','no shutdown','shutdown','no cdp run','snmp-server community','encapsulation ppp','clock rate','do wr','wr','show running-config','show ip interface brief','show vlan brief','vlan','name','ipconfig','ipconfig /renew','ping'];
+ var match='',score=1e9;
+ // Diagnósticos comuns antes da correspondência aproximada.
+ if(/^ip\s+default\s+gateway\b/.test(s))return '✗ Sintaxe inválida.\nDica: o Cisco IOS exige hífen: '+exampleFor('ip default-gateway');
+ if(/^ip\s+default-gateway\b/.test(s)){
+   if(!isSwitch())return '✗ Comando disponível nos switches Cisco 2960, não neste equipamento.';
+   if(d.mode!=='config')return '✗ Comando no modo incorreto.\nDica: entre em configure terminal e use '+exampleFor('ip default-gateway');
+   return '✗ Gateway inválido.\nDica: '+exampleFor('ip default-gateway');
+ }
+ if(/^ip\s+add(?:ress|res|resss)?\b/.test(s)||/^ip\s+adres/.test(s)){
+   if(d.mode!=='iface')return '✗ Comando no modo incorreto.\nDica: selecione uma interface primeiro, por exemplo: interface fastethernet 0/0';
+   return '✗ IP ou máscara ausente ou inválido.\nDica: '+exampleFor('ip address');
+ }
+ if(/^hostname(?:\s|$)/.test(s))return d.mode==='config'?'✗ Hostname não permitido neste exercício.\nDica: '+exampleFor('hostname'):'✗ Comando no modo incorreto.\nDica: entre em configure terminal e digite '+exampleFor('hostname');
+ if(/^interface\b/.test(s))return d.mode==='config'?'✗ Interface não reconhecida.\nDica: '+exampleFor(isSwitch()&&s.includes('vlan')?'interface vlan':'interface fastethernet'):'✗ É preciso entrar no modo de configuração global.\nDica: enable → configure terminal → '+exampleFor('interface fastethernet');
+ if(/^enable\s+secret\b/.test(s))return d.mode==='config'?'✗ Falta a senha.\nDica: '+exampleFor('enable secret'):'✗ Use enable secret no modo (config)#, após configure terminal.';
+ if(/^line\b/.test(s))return '✗ Linha inválida ou modo incorreto.\nDica: entre em (config)# e use line vty 0 1 ou line console 0.';
+ if(/^snmp-server\b/.test(s))return isSwitch()?'✗ Confira o modo (config)# e a sintaxe.\nDica: snmp-server community read ro ou snmp-server community write rw':'✗ SNMP está disponível apenas nos switches nesta simulação.';
+ if(/^clock\b/.test(s))return '✗ Confira a interface e o valor.\nDica: interface fastethernet 0/1 → clock rate 256000 (adaptação didática).';
+ if(/^encapsulation\b/.test(s))return '✗ Confira a interface e a sintaxe.\nDica: interface fastethernet 0/1 → encapsulation ppp (adaptação didática).';
+ if(/^password\b/.test(s))return d.mode==='line'?'✗ Informe uma senha.\nDica: '+exampleFor('password'):'✗ Use password no modo (config-line)#, após line console 0 ou line vty 0 1.';
+ if(/^no\s+sh/.test(s))return d.mode==='iface'?'✗ Use exatamente: no shutdown':'✗ Primeiro selecione uma interface: interface fastethernet 0/0; depois use no shutdown.';
+ if(/^ipconfig\b/.test(s))return isHost()?'✗ Opção incorreta.\nDica: ipconfig, ipconfig /all ou ipconfig /renew.':'✗ ipconfig é um comando de PC, não de Cisco IOS.';
+ if(/^show\b/.test(s))return '✗ Comando show indisponível neste modo ou ainda não implementado.\nDica: use enable e experimente show running-config ou show ip interface brief.';
+ if(/^ping(?:\s|$)/.test(s))return isHost()?'✗ Informe um IP válido.\nDica: ping 1.0.0.254':'✗ Ping por CLI ainda não foi implementado nos roteadores desta simulação.';
+ // Prioridade para comandos parecidos disponíveis no modo atual.
+ all.forEach(function(c){
+   var a=s.split(' ').slice(0,c.split(' ').length).join(' '),dist=editDistance(a,c),norm=dist/Math.max(c.length,1),inMode=list.indexOf(c)>=0;
+   var cur=norm+(inMode?0:.17);
+   if(s===c||s.indexOf(c+' ')===0)cur=-1+(inMode?-.2:0);
+   if(cur<score){match=c;score=cur;}
+ });
+ if(score<0){
+   if(list.indexOf(match)<0)return '✗ Comando no modo incorreto.\nDica: use '+exampleFor(match)+' no '+targetMode(match)+'.';
+   return '✗ Comando incompleto ou com parâmetros incorretos.\nDica: '+exampleFor(match);
+ }
+ if(score<=.46){
+   var detail=list.indexOf(match)>=0?'':' (requer '+targetMode(match)+')';
+   return '✗ Comando não reconhecido.\nVocê quis dizer: '+exampleFor(match)+'?'+detail;
+ }
+ return '✗ Comando não reconhecido ou não implementado.\nDica: digite help para consultar os comandos deste equipamento. Confira também o modo de configuração.';
+}
+
+function run(raw){var d=current(),cmd=raw.trim(),lc=cmd.toLowerCase(),parts=cmd.split(/\s+/),msg='';out(prompt()+' '+raw);
+if(!cmd){render();return}
+if(isHost()){
+ if(lc==='help'||lc==='?')msg='Comandos neste PC: '+allowedCommands(d).map(exampleFor).join(' | ');
+ else if(lc==='ipconfig /renew'&& (active===4||active===6))msg=requestDHCP(active);
+ else if(lc==='ipconfig'||lc==='ipconfig /all')msg='IPv4: '+d.ip+'\nMáscara: '+d.mask+'\nGateway: '+d.gateway+(lc==='ipconfig /all'?'\nDNS: '+d.dns+'\nDHCP Enabled: '+(d.ipMode==='dhcp'?'Yes':'No'):'');
+ else if(lc.indexOf('ping ')===0)msg='Ping não disponível entre hosts nesta etapa da simulação.';
+ else msg='✗ Comando inválido ou ainda não implementado.';
+ } else if(lc==='help'||lc==='?')msg='Comandos no modo atual:\n'+allowedCommands(d).filter(function(c){return !((!isSwitch()&&['interface vlan','ip default-gateway','no cdp run','snmp-server community','show vlan brief','vlan'].indexOf(c)>=0)||(isSwitch()&&['encapsulation ppp','clock rate'].indexOf(c)>=0))}).map(exampleFor).join('\n');
+ else if(lc==='enable'&&d.mode==='user'){d.mode='priv';msg='✓ Comando aceito. Modo privilegiado.'}
+ else if((lc==='configure terminal'||lc==='conf t')&&d.mode==='priv'){d.mode='config';msg='✓ Enter configuration commands, one per line.'}
+ else if(lc==='exit'){if(d.mode==='line'||d.mode==='iface'||d.mode==='vlan')d.mode='config';else if(d.mode==='config')d.mode='priv';else if(d.mode==='priv')d.mode='user';else msg='✗ Já está no modo usuário.';if(!msg)msg='✓ Comando aceito.'}
+ else if(lc==='end'&&d.mode!=='user'){d.mode='priv';msg='✓ Comando aceito.'}
+ else if(lc.indexOf('hostname ')===0&&d.mode==='config'){var expected=names[active];if(active<4&&parts[1]!==expected)msg='✗ Hostname esperado: '+expected;else{d.host=parts[1];msg='✓ Hostname atualizado.'}}
+ else if(lc.indexOf('enable secret ')===0&&d.mode==='config'){d.secret=parts.slice(2).join(' ');msg='✓ Senha enable secret configurada.'}
+ else if((lc==='line vty 0 1'||lc==='line console 0'||lc==='line con 0')&&d.mode==='config'){d.mode='line';d.context=lc.indexOf('vty')>=0?'vty':'console';msg='✓ Linha selecionada.'}
+ else if(lc.indexOf('password ')===0&&d.mode==='line'){d.lines[d.context].password=parts.slice(1).join(' ');msg='✓ Senha da linha configurada.'}
+ else if(lc==='login'&&d.mode==='line'){d.lines[d.context].login=true;msg='✓ Login habilitado.'}
+ else if(lc.indexOf('interface ')===0&&d.mode==='config'){var iface=/^vlan\s*1$/i.test(cmd.slice(10).trim())&&isSwitch()?'Vlan1':normalize(cmd.slice(10));if(d.interfaces[iface]){d.mode='iface';d.context=iface;msg='✓ Interface '+iface+' selecionada.'}else msg='✗ Interface não reconhecida.\nDica: '+exampleFor(isSwitch()?'interface vlan':'interface fastethernet')}
+ else if(lc.indexOf('ip address ')===0&&d.mode==='iface'){if(parts.length!==4||!validIP(parts[2])||!validMask(parts[3]))msg='✗ IP ou máscara inválidos.\nDica: '+exampleFor('ip address');else if(isSwitch()&&d.context==='Vlan1'&&(parts[2] !== (active===2?'1.0.0.100':'3.0.0.100')||parts[3]!=='255.0.0.0'))msg='✗ IP esperado para VLAN 1: '+(active===2?'1.0.0.100':'3.0.0.100')+' 255.0.0.0';else{d.interfaces[d.context].ip=parts[2];d.interfaces[d.context].mask=parts[3];msg='✓ Endereço IP configurado.'}}
+ else if((lc==='no shutdown'||lc==='no shut')&&d.mode==='iface'){d.interfaces[d.context].up=true;msg='✓ Interface ativada.'}
+ else if(lc==='shutdown'&&d.mode==='iface'){d.interfaces[d.context].up=false;msg='✓ Interface desativada.'}
+ else if(lc==='ip default-gateway 1.0.0.254'&&d.mode==='config'&&active===2){d.defaultGateway='1.0.0.254';msg='✓ Gateway padrão configurado.'}
+ else if(lc==='ip default-gateway 3.0.0.254'&&d.mode==='config'&&active===3){d.defaultGateway='3.0.0.254';msg='✓ Gateway padrão configurado.'}
+ else if(lc==='no cdp run'&&d.mode==='config'&&isSwitch()){d.cdp=false;msg='✓ CDP desativado.'}
+ else if(/^snmp-server community (write rw|read ro)$/i.test(cmd)&&d.mode==='config'&&isSwitch()){var sn=parts[2];d.snmp[sn]=parts[3];msg='✓ Comunidade SNMP '+sn+' configurada com permissão '+parts[3]+'.'}
+ else if(lc==='encapsulation ppp'&&d.mode==='iface'&&active<2){d.interfaces[d.context].encapsulation='ppp';msg='✓ PPP aceito (adaptação didática em FastEthernet).'}
+ else if(lc==='clock rate 256000'&&d.mode==='iface'&&active<2){d.interfaces[d.context].clock=256000;msg='✓ Clock rate aceito (adaptação didática em FastEthernet).'}
+ else if((lc==='do wr'&&['config','iface','line','vlan','priv'].indexOf(d.mode)>=0)||(['wr','write memory','copy running-config startup-config'].indexOf(lc)>=0&&d.mode==='priv')){d.saved=true;msg='Building configuration...\n[OK]\n✓ Configuração salva.'}
+ else if((lc==='show running-config'&&['priv','user'].indexOf(d.mode)>=0)||(lc==='do show running-config'&&['config','iface','line'].indexOf(d.mode)>=0)){msg='Building configuration...\nhostname '+d.host+'\n'+(d.secret?'enable secret '+d.secret+'\n':'')+(d.defaultGateway?'ip default-gateway '+d.defaultGateway+'\n':'')+(d.cdp===false?'no cdp run\n':'')+Object.keys(d.snmp||{}).map(function(k){return 'snmp-server community '+k+' '+d.snmp[k]+'\n'}).join('')+Object.keys(d.interfaces).map(function(k){var v=d.interfaces[k];return 'interface '+k+'\n'+(v.ip?' ip address '+v.ip+' '+v.mask+'\n':'')+(v.encapsulation?' encapsulation ppp\n':'')+(v.clock?' clock rate '+v.clock+'\n':'')+(v.up?' no shutdown':' shutdown')}).join('\n')}
+ else if(lc==='show ip interface brief'&&d.mode==='priv')msg=Object.keys(d.interfaces).map(function(k){var v=d.interfaces[k];return k+'  '+(v.ip||'unassigned')+'  '+(v.up?'up':'administratively down')}).join('\n');
+ else if(lc.indexOf('vlan ')===0&&d.mode==='config'&&isSwitch()){d.mode='vlan';d.context=parts[1];d.vlans[parts[1]]='VLAN'+parts[1];msg='✓ VLAN criada.'}
+ else if(lc.indexOf('name ')===0&&d.mode==='vlan'){d.vlans[d.context]=parts.slice(1).join(' ');msg='✓ Nome da VLAN definido.'}
+ else if(lc==='show vlan brief'&&isSwitch()&&d.mode==='priv')msg=Object.keys(d.vlans).map(function(k){return k+'  '+d.vlans[k]}).join('\n');
+ else msg=diagnose(cmd,d);
+ out(msg);render();}
+
+var serverTabs={5:'desktop',7:'desktop'};
+var defaultPage='<!DOCTYPE html>\n<html lang="pt-BR">\n<head><meta charset="UTF-8"><title>NOC</title></head>\n<body>\n<h1>Bem-vindo ao S_NOC</h1>\n<p>Servidor HTTP do laboratório.</p>\n</body>\n</html>';
+
+function serverState(d){
+ if(!d.services)d.services={dhcp:{enabled:false,gateway:'',dns:'',start:'',mask:'',max:''},dns:{enabled:true,records:{'www.fl1.com':'3.0.0.1'}},tftp:{enabled:false,files:{}},email:{enabled:false,domain:'',users:{},messages:[]}};
+ if(!d.services.http)d.services.http={enabled:false,page:defaultPage.replace(/S_NOC/g,d.host)};
+ return d.services;
+}
+function esc(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function field(id,label,value,typ){return '<label>'+esc(label)+'<input id="srv-'+id+'" type="'+(typ||'text')+'" value="'+esc(value)+'" autocomplete="off"></label>'}
+function getf(id){return $('srv-'+id).value.trim()}
+function serverMsg(m){$('serverStatus').textContent=m;save()}
+function serverPanel(){var d=current(),sv=serverState(d),tab=serverTabs[active]||'desktop';var html='<div class="server-nav">';[['desktop','Desktop · IP Configuration'],['dhcp','Services · DHCP'],['dns','Services · DNS'],['tftp','Services · TFTP'],['email','Services · EMAIL']].concat([['http','Services · HTTP']]).forEach(function(t){html+='<button type="button" class="'+(tab===t[0]?'active':'')+'" data-srvtab="'+t[0]+'">'+t[1]+'</button>'});html+='</div><div id="serverStatus" class="server-status" role="status">Configure os campos e pressione o botão correspondente.</div>';
+if(tab==='desktop'){html+='<h3>Desktop → IP Configuration</h3><p class="server-note">Static (IP fixo) — preencha todos os campos manualmente. No S_FL1, use DNS Server 1.0.0.1.</p><div class="server-fields">'+field('ip','IP Address',d.ip)+field('mask','Subnet Mask',d.mask)+field('gateway','Default Gateway',d.gateway)+field('dns','DNS Server',d.dns)+'</div><button type="button" class="server-button" id="srv-apply-ip">Apply</button>'}
+if(tab==='dhcp'){var x=sv.dhcp;html+='<h3>Services → DHCP</h3><p class="server-note">No S_FL1, o pool deve distribuir IPs da rede 3.0.0.0/8 e DNS Server 1.0.0.1.</p><p>Service: <strong>'+(x.enabled?'On':'Off')+'</strong></p><button type="button" class="server-button" id="srv-dhcp-toggle">'+(x.enabled?'Turn Off':'Turn On')+'</button><div class="server-fields">'+field('dh-gw','Default Gateway',x.gateway)+field('dh-dns','DNS Server',x.dns)+field('dh-start','Start IP Address',x.start)+field('dh-mask','Subnet Mask',x.mask)+field('dh-max','Maximum Number of Users',x.max,'number')+'</div><button type="button" class="server-button" id="srv-dhcp-save">Save</button>'}
+if(tab==='dns'){html+='<h3>Services → DNS</h3><p>DNS Service: <strong>'+(sv.dns.enabled?'On':'Off')+'</strong></p><button type="button" class="server-button" id="srv-dns-toggle">'+(sv.dns.enabled?'Turn Off':'Turn On')+'</button><h4>Resource Records (A)</h4>';Object.keys(sv.dns.records).forEach(function(n){html+='<div class="server-record"><span>'+esc(n)+' → '+esc(sv.dns.records[n])+'</span><button type="button" data-delete-dns="'+esc(n)+'">Delete</button></div>'});html+='<div class="server-fields">'+field('dns-name','Name','')+field('dns-ip','Address','')+'</div><button type="button" class="server-button" id="srv-dns-add">Add</button>'}
+if(tab==='tftp'){html+='<h3>Services → TFTP</h3><p>TFTP Service: <strong>'+(sv.tftp.enabled?'On':'Off')+'</strong></p><button type="button" class="server-button" id="srv-tftp-toggle">'+(sv.tftp.enabled?'Turn Off':'Turn On')+'</button><p class="server-note">Arquivos de configuração recebidos no simulador:</p>';var fs=Object.keys(sv.tftp.files);html+=fs.length?fs.map(function(n){return '<div class="server-record">'+esc(n)+'</div>'}).join(''):'<p>Nenhum arquivo recebido.</p>';html+='<p class="server-note">A transferência real por TFTP não é executada pelo navegador. Integração com os comandos dos roteadores será adicionada em outra etapa.</p>'}
+if(tab==='http'){var h=sv.http;html+='<h3>Services → HTTP</h3><p>HTTP Service: <strong>'+(h.enabled?'On':'Off')+'</strong></p><button type="button" class="server-button" id="srv-http-toggle">'+(h.enabled?'Turn Off':'Turn On')+'</button><h4>index.html</h4><p class="server-note">Edite o código HTML da página e pressione Save. A visualização é local, sem executar scripts.</p><textarea id="srv-http-editor" spellcheck="false" style="width:100%;min-height:230px;background:#081321;color:#e9f0fa;border:1px solid #52718e;border-radius:8px;padding:12px;font:14px monospace">'+esc(h.page)+'</textarea><br><button type="button" class="server-button" id="srv-http-save">Save</button><button type="button" class="server-button" id="srv-http-preview">Preview</button><div id="srv-http-preview-area" hidden style="margin-top:12px"><iframe title="Prévia HTTP" sandbox="" style="width:100%;height:260px;background:white;border-radius:8px;border:0"></iframe></div><p class="server-note">HTTP é simulado neste navegador; não disponibiliza um servidor na rede real.</p>'} 
+if(tab==='email'){var e=sv.email;html+='<h3>Services → EMAIL</h3><p>SMTP / POP3 Service: <strong>'+(e.enabled?'On':'Off')+'</strong></p><button type="button" class="server-button" id="srv-email-toggle">'+(e.enabled?'Turn Off':'Turn On')+'</button><div class="server-fields">'+field('email-domain','Domain Name',e.domain)+field('email-user','User','')+field('email-password','Password','')+'</div><button type="button" class="server-button" id="srv-email-domain">Set Domain</button><button type="button" class="server-button" id="srv-email-user-add">Add User</button><h4>User Accounts</h4>'+Object.keys(e.users).map(function(u){return '<div class="server-record">'+esc(u)+'@'+esc(e.domain)+'</div>'}).join('')+'<p class="server-note">As contas são simuladas localmente; não há envio real de emails pela Internet.</p>'}
+$('hostSettings').innerHTML=html;
+Array.from($('hostSettings').querySelectorAll('[data-srvtab]')).forEach(function(b){b.onclick=function(){serverTabs[active]=b.getAttribute('data-srvtab');render()}});
+function bind(id,fn){var el=$(id);if(el)el.onclick=fn}
+bind('srv-apply-ip',function(){var vals=['ip','mask','gateway','dns'].map(getf);if(!vals.every(validIP)||!validMask(vals[1])){serverMsg('✗ Endereço IP, máscara, gateway ou DNS inválido.');return}d.ip=vals[0];d.mask=vals[1];d.gateway=vals[2];d.dns=vals[3];render();serverMsg('✓ Configuração IP estática aplicada.'+(active===7&&vals[3]!=='1.0.0.1'?' Atenção: no S_FL1, o DNS esperado para o exercício é 1.0.0.1 (S_NOC).':''))});
+bind('srv-dhcp-toggle',function(){sv.dhcp.enabled=!sv.dhcp.enabled;render();serverMsg('✓ DHCP '+(sv.dhcp.enabled?'ativado.':'desativado.'))});
+bind('srv-dhcp-save',function(){var x=sv.dhcp,v=[getf('dh-gw'),getf('dh-dns'),getf('dh-start'),getf('dh-mask')],n=Number(getf('dh-max'));if(!v.every(validIP)||!validMask(v[3])||!Number.isInteger(n)||n<1||n>65535){serverMsg('✗ Parâmetros DHCP inválidos.');return}if(active===7&&(!sameSubnet(v[2],'3.0.0.1','255.0.0.0')||v[3]!=='255.0.0.0'||v[1]!=='1.0.0.1')){serverMsg('✗ No S_FL1, configure Start IP na rede 3.0.0.0/8, máscara 255.0.0.0 e DNS Server 1.0.0.1.');return}x.gateway=v[0];x.dns=v[1];x.start=v[2];x.mask=v[3];x.max=String(n);render();serverMsg('✓ Pool DHCP salvo.')});
+bind('srv-dns-toggle',function(){sv.dns.enabled=!sv.dns.enabled;render();serverMsg('✓ DNS '+(sv.dns.enabled?'ativado.':'desativado.'))});
+bind('srv-dns-add',function(){var n=getf('dns-name').toLowerCase(),ip=getf('dns-ip');if(!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(n)||!validIP(ip)){serverMsg('✗ Nome DNS ou IP inválido.');return}sv.dns.records[n]=ip;render();serverMsg('✓ Registro A adicionado: '+n+' → '+ip)});
+Array.from($('hostSettings').querySelectorAll('[data-delete-dns]')).forEach(function(b){b.onclick=function(){delete sv.dns.records[b.getAttribute('data-delete-dns')];render();serverMsg('✓ Registro DNS removido.')}});
+bind('srv-tftp-toggle',function(){sv.tftp.enabled=!sv.tftp.enabled;render();serverMsg('✓ TFTP '+(sv.tftp.enabled?'ativado.':'desativado.'))});
+bind('srv-http-toggle',function(){sv.http.enabled=!sv.http.enabled;render();serverMsg('✓ HTTP '+(sv.http.enabled?'ativado.':'desativado.'))});
+bind('srv-http-save',function(){sv.http.page=$('srv-http-editor').value;save();serverMsg('✓ index.html salvo no '+d.host+'.')});
+bind('srv-http-preview',function(){if(!sv.http.enabled){serverMsg('✗ Ative o serviço HTTP antes de visualizar.');return}var area=$('srv-http-preview-area');area.hidden=false;area.querySelector('iframe').srcdoc=$('srv-http-editor').value;serverMsg('✓ Prévia HTML carregada. Salve para manter as alterações.')});
+bind('srv-email-toggle',function(){sv.email.enabled=!sv.email.enabled;render();serverMsg('✓ SMTP e POP3 '+(sv.email.enabled?'ativados.':'desativados.'))});
+bind('srv-email-domain',function(){var v=getf('email-domain').toLowerCase();if(!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(v)){serverMsg('✗ Domínio inválido.');return}sv.email.domain=v;render();serverMsg('✓ Domínio de email configurado.')});
+bind('srv-email-user-add',function(){var domain=getf('email-domain').toLowerCase(),u=getf('email-user'),pw=getf('email-password');if(!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(domain)||!/^[a-zA-Z0-9._-]+$/.test(u)||!pw){serverMsg('✗ Informe domínio, usuário e senha válidos.');return}sv.email.domain=domain;sv.email.users[u]=pw;render();serverMsg('✓ Conta '+u+'@'+domain+' criada.')});
+}
+function render(){var d=current(),server=active===5||active===7;for(var i=0;i<8;i++)$('tab'+i).classList.toggle('active',i===active);$('routerTitle').textContent=(active<2?'Roteador ':isSwitch()?'Switch ':active%2===0?'Computador ':'Servidor ')+d.host;$('model').textContent=server?'Cisco Server-PT • Desktop / Services':active<2?'Cisco 1841 • CLI simulado':isSwitch()?'Cisco 2960 • CLI simulado':'PC simulado';$('prompt').textContent=prompt();$('terminal').textContent=d.log;$('terminal').scrollTop=$('terminal').scrollHeight;$('routeButton').hidden=isHost();$('vlanButton').hidden=!isSwitch();$('hostSettings').hidden=!isHost();$('terminal').hidden=server;$('form').hidden=server;document.querySelector('.actions').hidden=server;if(server){serverPanel()}else if(isHost()){$('hostSettings').innerHTML='<div class="host-grid">'+['ip','mask','gateway','dns'].map(function(k){return '<label>'+k.toUpperCase()+'<input id="host-'+k+'" value="'+esc(d[k])+'" inputmode="decimal"></label>'}).join('')+'</div><button type="button" class="host-save" id="saveHost">Aplicar IP estático</button>'+(active===4||active===6?'<button type="button" class="host-save" id="renewDHCP" style="margin-left:8px">DHCP / Renovar IP</button><p class="server-note">Modo atual: '+(d.ipMode==='dhcp'?'DHCP':'Estático')+' — o DHCP usa o servidor conectado ao mesmo switch.</p>':'');if($('renewDHCP'))$('renewDHCP').onclick=function(){out(requestDHCP(active));render()};$('saveHost').onclick=function(){var v=['ip','mask','gateway','dns'].map(function(k){return $('host-'+k).value.trim()});if(!v.every(validIP)||!validMask(v[1])){out('✗ Configuração IP inválida.');render();return}['ip','mask','gateway','dns'].forEach(function(k,i){d[k]=v[i]});d.ipMode='static';out('✓ Configuração estática aplicada.');render()}}else $('hostSettings').innerHTML='';$('hint').textContent=server?'Server-PT: ative e salve o pool DHCP. O PC conectado ao mesmo switch poderá receber IP em DHCP / Renovar IP. DNS, TFTP, EMAIL e HTTP continuam simulados localmente.':'Comandos são validados após pressionar Enviar. SW_NOC e SW_FL1 aceitam ip default-gateway, VLAN 1, CDP e SNMP. Use Tab para completar comandos. PPP e clock rate são aceitos nas FastEthernet dos roteadores apenas para fins didáticos.';save()}
+window.selectRouter=function(i){active=i;render()};window.selectHost=function(i){active=i+4;render()};window.runShortcut=function(cmd){run(cmd)};window.clearScreen=function(){current().log='';render()};window.resetRouter=function(){if(!confirm('Restaurar este equipamento?'))return;var i=active;devices[i].mode='user';devices[i].context='';devices[i].log='Equipamento reiniciado.\n';render()};
+// Tab completa somente palavras-chave IOS, nunca valores de configuracao.
+function completionCandidates(){
+ var d=current();
+ if(isHost())return ['ipconfig','ipconfig /all','ipconfig /renew','ping','help'];
+ if(d.mode==='user')return ['enable','help','show running-config'];
+ if(d.mode==='priv')return ['configure terminal','enable','show running-config','show ip interface brief'].concat(isSwitch()?['show vlan brief']:[]).concat(['write memory','copy running-config startup-config','exit']);
+ if(d.mode==='config')return ['hostname','enable secret','line vty','line console','interface fastethernet'].concat(isSwitch()?['interface vlan','ip default-gateway','no cdp run','snmp-server community']:[]).concat(['do wr','exit','end']);
+ if(d.mode==='line')return ['password','login','exit','end','do wr'];
+ if(d.mode==='iface')return ['ip address','no shutdown','shutdown'].concat(isSwitch()?[]:['encapsulation ppp','clock rate']).concat(['exit','end','do wr']);
+ if(d.mode==='vlan')return ['name','exit','end','do wr'];
+ return ['exit','end','help'];
+}
+function completeCommand(){
+ var el=$('command'),raw=el.value,typed=raw.replace(/^\s+/,''),commands=completionCandidates();
+ if(!typed)return;
+ var matches=commands.filter(function(c){return c.toLowerCase().indexOf(typed.toLowerCase())===0});
+ if(matches.length===1){
+   el.value=matches[0]+' ';
+ }else if(matches.length>1){
+   var prefix=matches[0];
+   for(var i=1;i<matches.length;i++){
+     var n=0;while(n<prefix.length&&n<matches[i].length&&prefix[n].toLowerCase()===matches[i][n].toLowerCase())n++;
+     prefix=prefix.slice(0,n);
+   }
+   if(prefix.length>typed.length)el.value=prefix;
+   else {out('% Comando ambiguo. Opcoes: '+matches.join(' | '));render();}
+ }
+ el.focus();el.setSelectionRange(el.value.length,el.value.length);
+}
+$('command').addEventListener('keydown',function(e){if(e.key==='Tab'){e.preventDefault();completeCommand();}});
+$('tabComplete').addEventListener('click',completeCommand);
+$('form').addEventListener('submit',function(e){e.preventDefault();var input=$('command');run(input.value);input.value='';});
+render();
+})();
+
+
+</script>
+</body>
+</html>
